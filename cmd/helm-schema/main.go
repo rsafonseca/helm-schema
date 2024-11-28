@@ -46,6 +46,7 @@ func exec(cmd *cobra.Command, _ []string) error {
 	addSchemaReference := viper.GetBool("add-schema-reference")
 	keepFullComment := viper.GetBool("keep-full-comment")
 	uncomment := viper.GetBool("uncomment")
+	outputUncommented := viper.GetBool("output-uncommented")
 	outFile := viper.GetString("output-file")
 	dontRemoveHelmDocsPrefix := viper.GetBool("dont-strip-helm-docs-prefix")
 	appendNewline := viper.GetBool("append-newline")
@@ -86,6 +87,7 @@ func exec(cmd *cobra.Command, _ []string) error {
 			schema.Worker(
 				dryRun,
 				uncomment,
+				outputUncommented,
 				addSchemaReference,
 				keepFullComment,
 				dontRemoveHelmDocsPrefix,

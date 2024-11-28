@@ -1,8 +1,10 @@
 package schema
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,7 +23,7 @@ type Result struct {
 }
 
 func Worker(
-	dryRun, uncomment, addSchemaReference, keepFullComment, dontRemoveHelmDocsPrefix bool,
+	dryRun, uncomment, outputUncommented, addSchemaReference, keepFullComment, dontRemoveHelmDocsPrefix bool,
 	valueFileNames []string,
 	skipAutoGenerationConfig *SkipAutoGenerationConfig,
 	outFile string,
@@ -106,6 +108,17 @@ func Worker(
 				result.Errors = append(result.Errors, err)
 				results <- result
 				continue
+			}
+			if outputUncommented {
+				file, err := os.OpenFile(valuesPath+".uncommented", os.O_WRONLY|os.O_CREATE, 0666)
+				if err != nil {
+					fmt.Println("File does not exist or cannot be created")
+					os.Exit(1)
+				}
+				defer file.Close()
+				w := bufio.NewWriter(file)
+				w.Write(content)
+				w.Flush()
 			}
 		}
 
