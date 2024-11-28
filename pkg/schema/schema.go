@@ -662,7 +662,7 @@ func YamlToSchema(
 				schema.Properties["global"].Title = "global"
 			}
 			if !skipAutoGeneration.Description {
-				schema.Properties["global"].Description = "Global values are values that can be accessed from any chart or subchart by exactly the same name."
+				schema.Properties["global"].Description = "Global values are values that can be accessed from any chart or subchart by exactly the same name. This is a built-in helm object"
 			}
 		}
 
@@ -747,13 +747,19 @@ func YamlToSchema(
 					keyNodeSchema = relSchema
 					keyNodeSchema.HasData = true
 				} else {
-
-					fmt.Println("zbrg")
 					log.Debug(err)
 				}
 			}
 
 			if keyNodeSchema.HasData {
+				// set the type if not explicitly set
+				if len(keyNodeSchema.Type) == 0 {
+					nodeType, err := typeFromTag(valueNode.Tag)
+					if err != nil {
+						log.Fatal(err)
+					}
+					keyNodeSchema.Type = nodeType
+				}
 				if err := keyNodeSchema.Validate(); err != nil {
 					log.Fatalf(
 						"Error while validating jsonschema of key %s: %v",
@@ -854,7 +860,6 @@ func YamlToSchema(
 			schema.Properties[keyNode.Value] = &keyNodeSchema
 		}
 	}
-
 	return schema
 }
 
