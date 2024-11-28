@@ -83,21 +83,19 @@ func RemoveCommentsFromYaml(reader io.Reader) ([]byte, error) {
 
 		// Skip uncommenting the first comment block in the file, e.g. for when using something like # yaml-language-server: $schema=<urlToTheSchema>
 		if !headerCommentsParsed {
-			if commentMatcher.Match([]byte(line)) {
+			if commentMatcher.Match([]byte(line)) && !schemaMatcher.Match([]byte(line)) && !helmDocsMatcher.Match([]byte(line)) {
 				appendAndNLStr(&result, line)
+				continue
 			} else {
+				appendAndNLStr(&result, "")
 				headerCommentsParsed = true
 			}
-			continue
+
 		}
 
 		// Don't try to uncomment helm-docs descriptions
-		if helmDocsMatcher.Match([]byte(line)) {
-			if inCode {
-				appendAndNLStr(&buff, line)
-			} else {
-				appendAndNLStr(&result, line)
-			}
+		if helmDocsMatcher.Match([]byte(line)) && !inCode {
+			appendAndNLStr(&result, line)
 			continue
 		}
 

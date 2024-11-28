@@ -110,7 +110,7 @@ func Worker(
 				continue
 			}
 			if outputUncommented {
-				file, err := os.OpenFile(valuesPath+".uncommented", os.O_WRONLY|os.O_CREATE, 0666)
+				file, err := os.Create(valuesPath + ".uncommented")
 				if err != nil {
 					fmt.Println("File does not exist or cannot be created")
 					os.Exit(1)
