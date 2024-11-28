@@ -50,6 +50,8 @@ func exec(cmd *cobra.Command, _ []string) error {
 	outFile := viper.GetString("output-file")
 	dontRemoveHelmDocsPrefix := viper.GetBool("dont-strip-helm-docs-prefix")
 	appendNewline := viper.GetBool("append-newline")
+	schemaId := viper.GetString("schema-id")
+	schemaTitle := viper.GetString("schema-title")
 	if err := viper.UnmarshalKey("value-files", &valueFileNames); err != nil {
 		return err
 	}
@@ -91,6 +93,8 @@ func exec(cmd *cobra.Command, _ []string) error {
 				addSchemaReference,
 				keepFullComment,
 				dontRemoveHelmDocsPrefix,
+				schemaId,
+				schemaTitle,
 				valueFileNames,
 				skipConfig,
 				outFile,

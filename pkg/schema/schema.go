@@ -835,7 +835,12 @@ func YamlToSchema(
 							seqSchema.AnyOf = append(seqSchema.AnyOf, itemSchema)
 						}
 					}
+					if len(seqSchema.AnyOf) == 1 {
+						seqSchema.Type = seqSchema.AnyOf[0].Type
+						seqSchema.AnyOf = nil
+					}
 					keyNodeSchema.Items = seqSchema
+					keyNodeSchema.Type = []string{"array"}
 
 					// Because the `required` field isn't valid jsonschema (but just a helper boolean)
 					// we must convert them to valid requiredProperties fields

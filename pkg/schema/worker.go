@@ -24,6 +24,7 @@ type Result struct {
 
 func Worker(
 	dryRun, uncomment, outputUncommented, addSchemaReference, keepFullComment, dontRemoveHelmDocsPrefix bool,
+	schemaId string, schemaTitle string,
 	valueFileNames []string,
 	skipAutoGenerationConfig *SkipAutoGenerationConfig,
 	outFile string,
@@ -131,7 +132,8 @@ func Worker(
 		}
 
 		result.Schema = *YamlToSchema(valuesPath, &values, keepFullComment, dontRemoveHelmDocsPrefix, skipAutoGenerationConfig, nil)
-
+		result.Schema.Title = schemaTitle
+		result.Schema.Id = schemaId
 		results <- result
 	}
 }
