@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"slices"
@@ -696,41 +698,57 @@ func YamlToSchema(
 			if keyNodeSchema.Ref != "" {
 				// Check if Ref is a relative file to the values file
 				refParts := strings.Split(keyNodeSchema.Ref, "#")
-				if relFilePath, err := util.IsRelativeFile(valuesPath, refParts[0]); err == nil {
-					var relSchema Schema
-					file, err := os.Open(relFilePath)
+				var byteValue []byte
+				if schemaPath, err := util.IsRelativeFile(valuesPath, refParts[0]); err == nil {
+					file, err := os.Open(schemaPath)
 					if err == nil {
-						byteValue, _ := io.ReadAll(file)
-
-						if len(refParts) > 1 {
-							// Found json-pointer
-							var obj interface{}
-							json.Unmarshal(byteValue, &obj)
-							jsonPointerResultRaw, err := jsonpointer.Get(obj, refParts[1])
-							if err != nil {
-								log.Fatal(err)
-							}
-							jsonPointerResultMarshaled, err := json.Marshal(jsonPointerResultRaw)
-							if err != nil {
-								log.Fatal(err)
-							}
-							err = json.Unmarshal(jsonPointerResultMarshaled, &relSchema)
-							if err != nil {
-								log.Fatal(err)
-							}
-						} else {
-							// No json-pointer
-							err = json.Unmarshal(byteValue, &relSchema)
-							if err != nil {
-								log.Fatal(err)
-							}
-						}
-						keyNodeSchema = relSchema
-						keyNodeSchema.HasData = true
+						byteValue, _ = io.ReadAll(file)
 					} else {
-						log.Fatal(err)
+						log.Fatalln(err)
 					}
+				} else if _, err := url.ParseRequestURI(keyNodeSchema.Ref); err == nil {
+					// Helm does not support looking up $ref, neither does yaml-language-server, so embedding it here
+					resp, err := http.Get(keyNodeSchema.Ref)
+					if err != nil {
+						log.Fatalln(err)
+					}
+					byteValue, err = io.ReadAll(resp.Body)
+					if err != nil {
+						log.Fatalln(err)
+					}
+					defer resp.Body.Close()
+				}
+
+				if len(byteValue) > 0 {
+					var relSchema Schema
+					if len(refParts) > 1 {
+						// Found json-pointer
+						var obj interface{}
+						json.Unmarshal(byteValue, &obj)
+						jsonPointerResultRaw, err := jsonpointer.Get(obj, refParts[1])
+						if err != nil {
+							log.Fatal(err)
+						}
+						jsonPointerResultMarshaled, err := json.Marshal(jsonPointerResultRaw)
+						if err != nil {
+							log.Fatal(err)
+						}
+						err = json.Unmarshal(jsonPointerResultMarshaled, &relSchema)
+						if err != nil {
+							log.Fatal(err)
+						}
+					} else {
+						// No json-pointer
+						err = json.Unmarshal(byteValue, &relSchema)
+						if err != nil {
+							log.Fatal(err)
+						}
+					}
+					keyNodeSchema = relSchema
+					keyNodeSchema.HasData = true
 				} else {
+
+					fmt.Println("zbrg")
 					log.Debug(err)
 				}
 			}
