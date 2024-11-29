@@ -2,6 +2,8 @@ module github.com/rsafonseca/helm-schema
 
 go 1.23.1
 
+toolchain go1.23.2
+
 require (
 	github.com/Masterminds/semver/v3 v3.3.0
 	github.com/dadav/go-jsonpointer v0.0.0-20240918181927-335cbee8c279

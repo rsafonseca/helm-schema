@@ -818,7 +818,6 @@ func YamlToSchema(
 				} else if valueNode.Kind == yaml.SequenceNode && keyNodeSchema.Items == nil {
 					// If the value is a sequence, but no items are predefined
 					seqSchema := NewSchema("")
-
 					for _, itemNode := range valueNode.Content {
 						if itemNode.Kind == yaml.ScalarNode {
 							itemNodeType, err := typeFromTag(itemNode.Tag)
@@ -842,12 +841,10 @@ func YamlToSchema(
 						}
 					}
 					if len(seqSchema.AnyOf) == 1 {
-						seqSchema.Type = seqSchema.AnyOf[0].Type
-						seqSchema.AnyOf = nil
+						seqSchema = seqSchema.AnyOf[0]
 					}
 					keyNodeSchema.Items = seqSchema
 					keyNodeSchema.Type = []string{"array"}
-
 					// Because the `required` field isn't valid jsonschema (but just a helper boolean)
 					// we must convert them to valid requiredProperties fields
 					FixRequiredProperties(&keyNodeSchema)
