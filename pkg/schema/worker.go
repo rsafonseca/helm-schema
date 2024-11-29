@@ -131,7 +131,7 @@ func Worker(
 			continue
 		}
 
-		result.Schema = *YamlToSchema(valuesPath, &values, keepFullComment, dontRemoveHelmDocsPrefix, skipAutoGenerationConfig, nil)
+		result.Schema = *YamlToSchema(valuesPath, &values, keepFullComment, dontRemoveHelmDocsPrefix, skipAutoGenerationConfig, nil, "")
 		result.Schema.Title = schemaTitle
 		result.Schema.Id = schemaId
 		results <- result

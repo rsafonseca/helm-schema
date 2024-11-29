@@ -281,7 +281,7 @@ func (s *Schema) UnmarshalYAML(node *yaml.Node) error {
 			"if", "minimum", "multipleOf", "exclusiveMaximum", "items", "exclusiveMinimum",
 			"maximum", "else", "pattern", "const", "$ref", "$schema", "$id", "format",
 			"description", "title", "type", "anyOf", "allOf", "oneOf", "requiredProperties",
-			"examples", "enum", "deprecated", "required", "not":
+			"examples", "enum", "deprecated", "required", "not", "dependencies":
 			// Skip known fields
 			continue
 		default:
@@ -662,9 +662,9 @@ func YamlToSchema(
 	dontRemoveHelmDocsPrefix bool,
 	skipAutoGeneration *SkipAutoGenerationConfig,
 	parentRequiredProperties *[]string,
+	parentId string,
 ) *Schema {
 	schema := NewSchema("object")
-
 	switch node.Kind {
 	case yaml.DocumentNode:
 		if len(node.Content) != 1 {
@@ -679,6 +679,7 @@ func YamlToSchema(
 			dontRemoveHelmDocsPrefix,
 			skipAutoGeneration,
 			&schema.Required.Strings,
+			"",
 		).Properties
 
 		if _, ok := schema.Properties["global"]; !ok {
@@ -806,6 +807,13 @@ func YamlToSchema(
 				keyNodeSchema.Type = nodeType
 			}
 
+			// Populate the $id field
+			if len(parentId) == 0 {
+				keyNodeSchema.Id = "#/properties/" + keyNode.Value
+			} else {
+				keyNodeSchema.Id = parentId + "/properties/" + keyNode.Value
+			}
+
 			// only validate or default if $ref is not set
 			if keyNodeSchema.Ref == "" {
 
@@ -845,6 +853,7 @@ func YamlToSchema(
 						dontRemoveHelmDocsPrefix,
 						skipAutoGeneration,
 						&keyNodeSchema.Required.Strings,
+						keyNodeSchema.Id,
 					).Properties
 					FixRequiredProperties(&keyNodeSchema)
 				} else if valueNode.Kind == yaml.SequenceNode && keyNodeSchema.Items == nil {
@@ -859,7 +868,7 @@ func YamlToSchema(
 							seqSchema.AnyOf = append(seqSchema.AnyOf, NewSchema(itemNodeType[0]))
 						} else {
 							itemRequiredProperties := []string{}
-							itemSchema := YamlToSchema(valuesPath, itemNode, keepFullComment, dontRemoveHelmDocsPrefix, skipAutoGeneration, &itemRequiredProperties)
+							itemSchema := YamlToSchema(valuesPath, itemNode, keepFullComment, dontRemoveHelmDocsPrefix, skipAutoGeneration, &itemRequiredProperties, keyNodeSchema.Id)
 
 							for _, req := range itemRequiredProperties {
 								itemSchema.Required.Strings = append(itemSchema.Required.Strings, req)
