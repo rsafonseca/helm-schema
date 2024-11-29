@@ -228,17 +228,18 @@ type Schema struct {
 	AnyOf                []*Schema              `yaml:"anyOf,omitempty"                json:"anyOf,omitempty"`
 	AllOf                []*Schema              `yaml:"allOf,omitempty"                json:"allOf,omitempty"`
 	OneOf                []*Schema              `yaml:"oneOf,omitempty"                json:"oneOf,omitempty"`
-	Not                  *Schema                `yaml:"not,omitempty"                json:"not,omitempty"`
+	Not                  *Schema                `yaml:"not,omitempty"                  json:"not,omitempty"`
 	Examples             []string               `yaml:"examples,omitempty"             json:"examples,omitempty"`
 	Enum                 []string               `yaml:"enum,omitempty"                 json:"enum,omitempty"`
 	HasData              bool                   `yaml:"-"                              json:"-"`
 	Deprecated           bool                   `yaml:"deprecated,omitempty"           json:"deprecated,omitempty"`
-	ReadOnly             bool                   `yaml:"readOnly,omitempty"           json:"readOnly,omitempty"`
-	WriteOnly            bool                   `yaml:"writeOnly,omitempty"           json:"writeOnly,omitempty"`
+	ReadOnly             bool                   `yaml:"readOnly,omitempty"             json:"readOnly,omitempty"`
+	WriteOnly            bool                   `yaml:"writeOnly,omitempty"            json:"writeOnly,omitempty"`
 	Required             BoolOrArrayOfString    `yaml:"required,omitempty"             json:"required,omitempty"`
 	CustomAnnotations    map[string]interface{} `yaml:"-"                              json:",omitempty"`
-	MinLength            *int                   `yaml:"minLength,omitempty"              json:"minLength,omitempty"`
-	MaxLength            *int                   `yaml:"maxLength,omitempty"              json:"maxLength,omitempty"`
+	MinLength            *int                   `yaml:"minLength,omitempty"            json:"minLength,omitempty"`
+	MaxLength            *int                   `yaml:"maxLength,omitempty"            json:"maxLength,omitempty"`
+	Dependencies         *Schema                `yaml:"dependencies,omitempty"         json:"dependencies,omitempty"`
 }
 
 func NewSchema(schemaType string) *Schema {
@@ -527,6 +528,7 @@ func typeFromTag(tag string) ([]string, error) {
 // FixRequiredProperties iterates over the properties and checks if required has a boolean value.
 // Then the property is added to the parents required property list
 func FixRequiredProperties(schema *Schema) error {
+
 	if schema.Properties != nil {
 		for propName, propValue := range schema.Properties {
 			FixRequiredProperties(propValue)
@@ -582,6 +584,35 @@ func FixRequiredProperties(schema *Schema) error {
 
 	if schema.Not != nil {
 		FixRequiredProperties(schema.Not)
+	}
+
+	// If we're specifying the required properties in a condition, don't populate Required on this schema
+	if (schema.Then != nil && len(schema.Then.Required.Strings) > 0) || (schema.Else != nil && len(schema.Else.Required.Strings) > 0) {
+		schema.Required.Strings = []string{}
+	}
+	if len(schema.OneOf) > 0 {
+		for _, one := range schema.OneOf {
+			if len(one.Required.Strings) > 0 {
+				schema.Required.Strings = []string{}
+				break
+			}
+		}
+	}
+	if len(schema.AllOf) > 0 {
+		for _, all := range schema.AllOf {
+			if len(all.Required.Strings) > 0 {
+				schema.Required.Strings = []string{}
+				break
+			}
+		}
+	}
+	if len(schema.AnyOf) > 0 {
+		for _, any := range schema.AnyOf {
+			if len(any.Required.Strings) > 0 {
+				schema.Required.Strings = []string{}
+				break
+			}
+		}
 	}
 
 	return nil
@@ -815,6 +846,7 @@ func YamlToSchema(
 						skipAutoGeneration,
 						&keyNodeSchema.Required.Strings,
 					).Properties
+					FixRequiredProperties(&keyNodeSchema)
 				} else if valueNode.Kind == yaml.SequenceNode && keyNodeSchema.Items == nil {
 					// If the value is a sequence, but no items are predefined
 					seqSchema := NewSchema("")
