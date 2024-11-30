@@ -795,13 +795,6 @@ func YamlToSchema(
 				keyNodeSchema.Type = nodeType
 			}
 
-			// Populate the $id field
-			if len(parentId) == 0 {
-				keyNodeSchema.Id = "#/properties/" + keyNode.Value
-			} else {
-				keyNodeSchema.Id = parentId + "/properties/" + keyNode.Value
-			}
-
 			// only validate or default if $ref is not set
 			if keyNodeSchema.Ref == "" {
 
