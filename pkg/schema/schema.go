@@ -778,10 +778,7 @@ func YamlToSchema(
 					if err != nil {
 						log.Fatal(err)
 					}
-					// Don't explicity set the type for null, as it doesn't make sense to declare fields which can only be null (should be any instead)
-					if valueNode.Tag != nullTag {
-						keyNodeSchema.Type = nodeType
-					}
+					keyNodeSchema.Type = nodeType
 				}
 				if err := keyNodeSchema.Validate(); err != nil {
 					log.Fatalf(
@@ -795,9 +792,41 @@ func YamlToSchema(
 				if err != nil {
 					log.Fatal(err)
 				}
-				// Don't explicity set the type for null, as it doesn't make sense to declare fields which can only be null (should be any instead)
-				if valueNode.Tag != nullTag {
-					keyNodeSchema.Type = nodeType
+				keyNodeSchema.Type = nodeType
+			}
+
+			// Treat null case
+			// Don't explicity set the type for null, as it doesn't make sense to declare fields which can only be null (should be any instead)
+			if valueNode.Tag == nullTag {
+				// Try to get type from examples, if they are set
+				if len(keyNodeSchema.Examples) > 0 {
+					type Examples struct {
+						Examples []string `yaml:"examples"`
+					}
+					examplesNode := &yaml.Node{}
+					examplesContent := &Examples{Examples: keyNodeSchema.Examples}
+					examplesArray, err := yaml.Marshal(examplesContent)
+					if err == nil {
+						err := yaml.Unmarshal(examplesArray, examplesNode)
+						if err == nil {
+							ex := YamlToSchema(
+								valuesPath,
+								examplesNode.Content[0],
+								keepFullComment,
+								dontRemoveHelmDocsPrefix,
+								skipAutoGeneration,
+								&[]string{},
+								keyNodeSchema.Id,
+							)
+							examples := ex.Properties["examples"]
+							if examples != nil && examples.Items != nil {
+								keyNodeSchema.Type = examples.Items.Type
+								keyNodeSchema.AnyOf = examples.Items.AnyOf
+							}
+						}
+					}
+				} else {
+					keyNodeSchema.Type = nil
 				}
 			}
 
