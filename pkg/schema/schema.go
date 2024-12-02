@@ -797,7 +797,7 @@ func YamlToSchema(
 
 			// Treat null case
 			// Don't explicity set the type for null, as it doesn't make sense to declare fields which can only be null (should be any instead)
-			if valueNode.Tag == nullTag {
+			if len(keyNodeSchema.Type) == 1 && keyNodeSchema.Type[0] == "null" {
 				// Try to get type from examples, if they are set
 				if len(keyNodeSchema.Examples) > 0 {
 					type Examples struct {
