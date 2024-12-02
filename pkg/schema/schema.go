@@ -778,7 +778,10 @@ func YamlToSchema(
 					if err != nil {
 						log.Fatal(err)
 					}
-					keyNodeSchema.Type = nodeType
+					// Don't explicity set the type for null, as it doesn't make sense to declare fields which can only be null (should be any instead)
+					if valueNode.Tag != nullTag {
+						keyNodeSchema.Type = nodeType
+					}
 				}
 				if err := keyNodeSchema.Validate(); err != nil {
 					log.Fatalf(
@@ -792,7 +795,10 @@ func YamlToSchema(
 				if err != nil {
 					log.Fatal(err)
 				}
-				keyNodeSchema.Type = nodeType
+				// Don't explicity set the type for null, as it doesn't make sense to declare fields which can only be null (should be any instead)
+				if valueNode.Tag != nullTag {
+					keyNodeSchema.Type = nodeType
+				}
 			}
 
 			// only validate or default if $ref is not set
