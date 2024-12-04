@@ -405,10 +405,6 @@ func (s Schema) Validate() error {
 		return errors.New("if your are using const, you can't use type")
 	}
 
-	if s.Enum != nil && !s.Type.IsEmpty() {
-		return errors.New("if your are using enum, you can't use type")
-	}
-
 	// Check if format is valid
 	// https://json-schema.org/understanding-json-schema/reference/string.html#built-in-formats
 	// We currently dont support https://datatracker.ietf.org/doc/html/rfc3339#appendix-A
@@ -795,39 +791,44 @@ func YamlToSchema(
 				keyNodeSchema.Type = nodeType
 			}
 
+			// Try to get type from examples, if they are set
+			if len(keyNodeSchema.Examples) > 0 {
+				type Examples struct {
+					Examples []string `yaml:"examples"`
+				}
+				examplesNode := &yaml.Node{}
+				examplesContent := &Examples{Examples: keyNodeSchema.Examples}
+				examplesArray, err := yaml.Marshal(examplesContent)
+				if err == nil {
+					err := yaml.Unmarshal(examplesArray, examplesNode)
+					if err == nil {
+						ex := YamlToSchema(
+							valuesPath,
+							examplesNode.Content[0],
+							keepFullComment,
+							dontRemoveHelmDocsPrefix,
+							skipAutoGeneration,
+							&[]string{},
+							keyNodeSchema.Id,
+						)
+						examples := ex.Properties["examples"]
+						if examples != nil && examples.Items != nil {
+							keyNodeSchema.Type = examples.Items.Type
+							keyNodeSchema.AnyOf = examples.Items.AnyOf
+						}
+					}
+				}
+			}
+
 			// Treat null case
 			// Don't explicity set the type for null, as it doesn't make sense to declare fields which can only be null (should be any instead)
 			if len(keyNodeSchema.Type) == 1 && keyNodeSchema.Type[0] == "null" {
-				// Try to get type from examples, if they are set
-				if len(keyNodeSchema.Examples) > 0 {
-					type Examples struct {
-						Examples []string `yaml:"examples"`
-					}
-					examplesNode := &yaml.Node{}
-					examplesContent := &Examples{Examples: keyNodeSchema.Examples}
-					examplesArray, err := yaml.Marshal(examplesContent)
-					if err == nil {
-						err := yaml.Unmarshal(examplesArray, examplesNode)
-						if err == nil {
-							ex := YamlToSchema(
-								valuesPath,
-								examplesNode.Content[0],
-								keepFullComment,
-								dontRemoveHelmDocsPrefix,
-								skipAutoGeneration,
-								&[]string{},
-								keyNodeSchema.Id,
-							)
-							examples := ex.Properties["examples"]
-							if examples != nil && examples.Items != nil {
-								keyNodeSchema.Type = examples.Items.Type
-								keyNodeSchema.AnyOf = examples.Items.AnyOf
-							}
-						}
-					}
-				} else {
-					keyNodeSchema.Type = nil
-				}
+				keyNodeSchema.Type = nil
+			}
+
+			// Don't set type if Enum is set
+			if len(keyNodeSchema.Enum) > 0 {
+				keyNodeSchema.Type = nil
 			}
 
 			// only validate or default if $ref is not set
