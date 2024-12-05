@@ -792,7 +792,7 @@ func YamlToSchema(
 			}
 
 			// Try to get type from examples, if they are set
-			if len(keyNodeSchema.Examples) > 0 {
+			if len(keyNodeSchema.Examples) > 0 && len(keyNodeSchema.Type) == 0 {
 				type Examples struct {
 					Examples []string `yaml:"examples"`
 				}
