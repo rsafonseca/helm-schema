@@ -838,17 +838,17 @@ func YamlToSchema(
 				}
 			}
 
+			// If no title was set, use the key value
+			if keyNodeSchema.Title == "" && !skipAutoGeneration.Title {
+				keyNodeSchema.Title = keyNode.Value
+			}
+
 			// only validate or default if $ref is not set
 			if keyNodeSchema.Ref == "" {
 
 				if !skipAutoGeneration.AdditionalProperties && valueNode.Kind == yaml.MappingNode &&
 					(!keyNodeSchema.HasData || keyNodeSchema.AdditionalProperties == nil) {
 					keyNodeSchema.AdditionalProperties = new(bool)
-				}
-
-				// If no title was set, use the key value
-				if keyNodeSchema.Title == "" && !skipAutoGeneration.Title {
-					keyNodeSchema.Title = keyNode.Value
 				}
 
 				// If no description was set, use the rest of the comment as description
