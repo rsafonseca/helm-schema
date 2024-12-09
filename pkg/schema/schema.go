@@ -831,15 +831,15 @@ func YamlToSchema(
 				keyNodeSchema.Type = nil
 			}
 
+			// Add key to required array of parent
+			if keyNodeSchema.Required.Bool || (len(keyNodeSchema.Required.Strings) == 0 && !skipAutoGeneration.Required && !keyNodeSchema.HasData) {
+				if !slices.Contains(*parentRequiredProperties, keyNode.Value) {
+					*parentRequiredProperties = append(*parentRequiredProperties, keyNode.Value)
+				}
+			}
+
 			// only validate or default if $ref is not set
 			if keyNodeSchema.Ref == "" {
-
-				// Add key to required array of parent
-				if keyNodeSchema.Required.Bool || (len(keyNodeSchema.Required.Strings) == 0 && !skipAutoGeneration.Required && !keyNodeSchema.HasData) {
-					if !slices.Contains(*parentRequiredProperties, keyNode.Value) {
-						*parentRequiredProperties = append(*parentRequiredProperties, keyNode.Value)
-					}
-				}
 
 				if !skipAutoGeneration.AdditionalProperties && valueNode.Kind == yaml.MappingNode &&
 					(!keyNodeSchema.HasData || keyNodeSchema.AdditionalProperties == nil) {
